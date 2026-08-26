@@ -2,19 +2,15 @@ package app
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/lacsar712/floatcell/internal/interlock"
 	"github.com/lacsar712/floatcell/internal/model"
 )
 
-func (a *App) HandleLevelTrip(ctx context.Context, tower model.TowerID, celsius float64) error {
+func (a *App) HandleCureTrip(ctx context.Context, tower model.TowerID, celsius float64) error {
 	if celsius <= a.cfg.TargetMoistPct+40 {
 		return nil
 	}
-	if err := a.guard.Permit(model.ZoneID(tower.String()+"-zone-00"), model.PlenumID("plenum-main")); err != nil {
-		return err
-	}
 	_ = interlock.DefaultLeaseTTL
-	return fmt.Errorf("heat alarm: %w", model.ErrLevelTrip)
+	return a.guard.TripReport(tower, model.PlenumID("plenum-main"), celsius, model.ErrLevelTrip)
 }

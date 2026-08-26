@@ -2,13 +2,12 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/lacsar712/floatcell/internal/model"
 )
 
-func (a *App) ValidatePulpDrift(ctx context.Context, moistPct float64) error {
+func (a *App) ValidateMoldDrift(ctx context.Context, moistPct float64) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -16,15 +15,18 @@ func (a *App) ValidatePulpDrift(ctx context.Context, moistPct float64) error {
 	if moistPct <= limit {
 		return nil
 	}
-	return fmt.Errorf("moisture: %w", model.ErrPulpDrift)
+	return model.DriftChain(moistPct)
 }
 
-func (a *App) ConfirmSpargeHold(ctx context.Context, anchor time.Time) error {
+func (a *App) ConfirmBladderHold(ctx context.Context, anchor time.Time) error {
 	if a.avgWindow == nil {
 		return model.Wrap("app", "window", model.ErrSpargeHold)
 	}
 	if err := a.avgWindow.Require(anchor); err != nil {
-		return fmt.Errorf("gradient hold: %w", err)
+		return model.HoldChain(err)
+	}
+	if a.scheduler != nil && a.scheduler.VentStepsDone() == 0 {
+		return model.Wrap("app", "schedule", model.ErrScheduleEmpty)
 	}
 	return nil
 }

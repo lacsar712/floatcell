@@ -19,12 +19,15 @@ func NewAerateWindow(clk Clock, duration time.Duration) *AerateWindow {
 }
 
 func (w *AerateWindow) Active(anchor time.Time) bool {
-	return WindowElapsed(w.clk, anchor, w.duration)
+	return ProcessWindowOpen(w.clk, anchor, w.duration)
 }
 
 func (w *AerateWindow) Require(anchor time.Time) error {
-	if w.Active(anchor) {
+	if ProcessWindowOpen(w.clk, anchor, w.duration) {
 		return nil
+	}
+	if ProcessWindowClosed(w.clk, anchor, w.duration) {
+		return model.ErrSpargeHold
 	}
 	return model.ErrSpargeHold
 }
