@@ -52,7 +52,13 @@ func (a *DamperActuator) Register(d *Damper) {
 }
 
 func (a *DamperActuator) Move(ctx context.Context, id model.DamperID, pct float64) error {
-	return a.lock.WithLease(ctx, id, interlock.DefaultLeaseTTL, func() error {
+	return a.lock.WithLease(ctx, id, interlock.DefaultLeaseTTL, func(workerCtx context.Context) error {
+		// Honor standby before driving the servo: once the operator goes to
+		// standby the worker context is canceled, so we never emit a valve
+		// pulse after the chain has reported canceled.
+		if err := workerCtx.Err(); err != nil {
+			return model.Wrap("damper", "standby", model.ErrContextCanceled)
+		}
 		d, ok := a.dampers[id]
 		if !ok {
 			return model.Wrap("damper", "unknown", model.ErrNotFound)

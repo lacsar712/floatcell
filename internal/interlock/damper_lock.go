@@ -50,16 +50,23 @@ func (l *DamperLock) TryAcquire(damper model.DamperID, ttl time.Duration) (relea
 	return release, true
 }
 
-func (l *DamperLock) WithLease(ctx context.Context, damper model.DamperID, ttl time.Duration, fn func() error) error {
+func (l *DamperLock) WithLease(ctx context.Context, damper model.DamperID, ttl time.Duration, fn func(context.Context) error) error {
 	release, ok := l.TryAcquire(damper, ttl)
 	if !ok {
 		return model.Wrap("damper_lock", "busy", model.ErrInterlock)
 	}
 	defer release()
+	// Run the actuator drive on a worker context derived from the caller's
+	// context. When the caller goes to standby (ctx canceled) we signal the
+	// worker so it aborts before driving the servo instead of orphaning a
+	// goroutine that moves the valve after the chain has reported canceled.
+	workerCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	done := make(chan error, 1)
-	go func() { done <- fn() }()
+	go func() { done <- fn(workerCtx) }()
 	select {
 	case <-ctx.Done():
+		cancel()
 		return model.Wrap("damper_lock", "canceled", context.Cause(ctx))
 	case err := <-done:
 		return err
