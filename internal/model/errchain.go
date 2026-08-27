@@ -6,7 +6,7 @@ import (
 )
 
 func DriftChain(pct float64) error {
-	return fmt.Errorf("pulp level %.1f drift exceeded: %w", pct, ErrPulpDrift)
+	return fmt.Errorf("moisture %.1f drift high: %w", pct, ErrPulpDrift)
 }
 
 func TripChain(zone string, celsius float64) error {
