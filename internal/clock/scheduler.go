@@ -30,7 +30,11 @@ func (s *SegmentScheduler) InstallVentPlanCtx(ctx context.Context, settings Vent
 		steps = 60
 	}
 	for i := 0; i < steps; i++ {
-
+		// Honor cancellation so a torn-off window marker also stops the
+		// schedule axis; otherwise stale ramp steps keep being written.
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		s.ventStepsDone = i + 1
 		s.clk.Step()
 		time.Sleep(2 * time.Millisecond)
