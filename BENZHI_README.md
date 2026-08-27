@@ -1,6 +1,6 @@
 # floatcell
 
-Mineral flotation cell aeration and pulp-level control. No web UI.
+floatcell 是一套矿物浮选槽工业过程控制系统，用于充气阀组、矿浆液位与过程联锁。
 
 ## Requirements
 
